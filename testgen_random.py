@@ -11,8 +11,24 @@ from importlib.machinery import SourceFileLoader
 from _ast import Assert, Return
 from typing import Any
 
+from instrumentor import BranchTransformer
 
+def get_imported_functions(file_path):
+    with open(file_path, 'r') as file:
+        tree = ast.parse(file.read(), filename=file_path)
 
+    imported_functions = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_functions.add(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            module_name = node.module
+            for alias in node.names:
+                imported_functions.add(f"{alias.name}")
+
+    return imported_functions
 
 class fuzzer_test_gen:
     def __init__(self, POOL: int):
@@ -186,12 +202,49 @@ class fuzzer_test_gen:
         
 
 if __name__ == '__main__':
+
+    type_list = []
+
+    test_file_name = input('enter the file for testing: ')
+    path_original = 'benchmark/' + test_file_name
+    path_instrumented = 'instrumented_' + test_file_name
+
+    test_file = SourceFileLoader(test_file_name, path_original).load_module()
+
+    
+
+    function_names = [func for func in dir(test_file) if not func.startswith('__')]
+    # print(function_names)
+
+    b_transformer = BranchTransformer(function_names)
+
+    for func in function_names:
+        globals()[func] = getattr(test_file, func)
+        source = inspect.getsource(globals()[func])
+        node = ast.parse(source)
+        tree = b_transformer.visit(node)
+
+    for t in b_transformer.arg_type_list:
+        type_list.append(t.annotation.id)
+
+    
+    # print(type_list)
+
+    # print(b_transformer.arg_type_list)
+
+    
     pool_size = int(input("Please enter the POOL size: "))
     fuzz = fuzzer_test_gen(pool_size)
-    pool_type = input("Please enter the POOL type: ")
+    if len(set(type_list)) == 1:
+        pool_type = type_list[0]
+    else:
+        pool_type = 'tuple'
+    # print(pool_type)
+    # pool_type = input("Please enter the POOL type: ")
     if pool_type == 'int':
         MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
-        n = int(input('Enter the number of integer inputs: '))
+        n = len(type_list)
+        # n = int(input('Enter the number of integer inputs: '))
         if n == 1:
             print(fuzz.test_gen(fuzz.random_int(int(MIN_VAL), int(MAX_VAL))))
         elif n == 2:
@@ -200,7 +253,8 @@ if __name__ == '__main__':
             print(fuzz.test_gen(fuzz.random_int_int_int(int(MIN_VAL), int(MAX_VAL))))
     elif pool_type == 'str':
         MAX_STRING_LENGTH = input('Enter max. length of the string: ')
-        n = int(input('Enter the number of string inputs: '))
+        n = len(type_list)
+        # n = int(input('Enter the number of string inputs: '))
         if n == 1:
             print(fuzz.test_gen(fuzz.random_string(int(MAX_STRING_LENGTH))))
         elif n == 2: 
