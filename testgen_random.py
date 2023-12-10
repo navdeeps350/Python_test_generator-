@@ -20,7 +20,7 @@ class fuzzer_test_gen:
 
     def random_string(self, MAX_STRING_LENGTH: int):
         string_pool = []
-        for i in range(self.POOL):
+        for p in range(self.POOL):
             l = random.randint(0, MAX_STRING_LENGTH)
             s = ""
             for i in range(l):
@@ -31,7 +31,7 @@ class fuzzer_test_gen:
     
     def random_string_string(self, MAX_STRING_LENGTH: int):
         string_pool = []
-        for i in range(self.POOL):
+        for p in range(self.POOL):
             l = random.randint(0, MAX_STRING_LENGTH)
             s = ""
             k = ""
@@ -55,7 +55,7 @@ class fuzzer_test_gen:
 
     def random_str_int(self, MAX_STRING_LENGTH: int, MIN_INT: int, MAX_INT: int):
         pool = []
-        for i in range(self.POOL):
+        for p in range(self.POOL):
             l = random.randint(0, MAX_STRING_LENGTH)
             s = ""
             for i in range(l):
@@ -121,8 +121,6 @@ class fuzzer_test_gen:
     def crossover_str(self, individual1: list, individual2: list):
         idx = 0
         for parent1, parent2 in zip(individual1, individual2):
-            print(parent1)
-            print(parent2)
             if len(parent1) > 1 and len(parent2) > 1:
                 pos = random.randint(1, len(parent1))
                 offspring1 = parent1[:pos] + parent2[pos:]
@@ -151,7 +149,7 @@ class fuzzer_test_gen:
         return [(offspring1, individual1[0][1])], [(offspring2, individual2[0][1])]
     
 
-    def fuzzer_test_gen(self, data_pool: list):
+    def test_gen(self, data_pool: list):
         test_generation = ['random initializer', 'mutation', 'crossover']
         choice = random.choice(test_generation)
         if type(data_pool[0][0]) == str:
@@ -186,3 +184,27 @@ class fuzzer_test_gen:
                 test_case = self.crossover_str_int(test_case_1, test_case_2)
         return test_case
         
+
+if __name__ == '__main__':
+    pool_size = int(input("Please enter the POOL size: "))
+    fuzz = fuzzer_test_gen(pool_size)
+    pool_type = input("Please enter the POOL type: ")
+    if pool_type == 'int':
+        MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
+        n = int(input('Enter the number of integer inputs: '))
+        if n == 1:
+            print(fuzz.test_gen(fuzz.random_int(int(MIN_VAL), int(MAX_VAL))))
+        elif n == 2:
+            print(fuzz.test_gen(fuzz.random_int_int(int(MIN_VAL), int(MAX_VAL))))
+        elif n == 3:
+            print(fuzz.test_gen(fuzz.random_int_int_int(int(MIN_VAL), int(MAX_VAL))))
+    elif pool_type == 'str':
+        MAX_STRING_LENGTH = input('Enter max. length of the string: ')
+        n = int(input('Enter the number of string inputs: '))
+        if n == 1:
+            print(fuzz.test_gen(fuzz.random_string(int(MAX_STRING_LENGTH))))
+        elif n == 2: 
+            print(fuzz.test_gen(fuzz.random_string_string(int(MAX_STRING_LENGTH))))
+    elif pool_type == 'tuple':
+        MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
+        print(fuzz.test_gen(fuzz.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL))))
