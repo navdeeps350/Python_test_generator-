@@ -177,7 +177,7 @@ class fuzzer_test_gen:
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
-                test_case = self.crossover_str(test_case_1, test_case_2)
+                test_case = random.choice(self.crossover_str(test_case_1, test_case_2))
         elif type(data_pool[0][0]) == int:
             if choice == 'random initializer':
                 test_case = random.choice(data_pool)
@@ -187,7 +187,7 @@ class fuzzer_test_gen:
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
-                test_case = self.crossover_int(test_case_1, test_case_2) 
+                test_case = random.choice(self.crossover_int(test_case_1, test_case_2) )
         elif type(data_pool[0][0]) == tuple:
             if choice == 'random initializer':
                 test_case = random.choice(data_pool)
@@ -197,7 +197,7 @@ class fuzzer_test_gen:
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
-                test_case = self.crossover_str_int(test_case_1, test_case_2)
+                test_case = random.choice(self.crossover_str_int(test_case_1, test_case_2))
         return test_case
         
 

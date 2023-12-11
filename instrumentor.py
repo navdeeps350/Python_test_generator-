@@ -43,8 +43,8 @@ class BranchTransformer(ast.NodeTransformer):
     def visit_Assert(self, node) :
         return node
     
-    def visit_While(self, node):
-        return node
+    # def visit_While(self, node):
+    #     return node
     
     def visit_Compare(self, node):
         if node.ops[0].__class__ in [ast.Is, ast.IsNot, ast.In, ast.NotIn]:
