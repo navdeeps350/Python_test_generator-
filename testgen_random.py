@@ -94,20 +94,20 @@ class fuzzer_test_gen:
                     string[idx] = mutated
         return individuals
     
-    def mutate_int(self, int_lists: list):
+    def mutate_int(self, int_lists: list, *args):
         mutated_list = []
         for l in int_lists:
             mutated_individual = l.copy()
 
             for i in range(len(mutated_individual)):
                 if random.random() < 1 / len(mutated_individual):
-                    mutated_individual[i] += random.randint(-1000, 1000)
+                    mutated_individual[i] += random.randint(int(MIN_VAL), int(MAX_VAL))
 
             mutated_list.append(mutated_individual)
         return mutated_list
     
     
-    def mutate_str_int(self, lists: list):
+    def mutate_str_int(self, lists: list, *args):
         str_int_list = []
         for l in lists:
             r = random.choice(l[0])
@@ -127,7 +127,7 @@ class fuzzer_test_gen:
             elif type(r) == int:
                 mutated_individual = r
                 if random.random() < 1 / len(l[0]):
-                    mutated_individual += random.randint(-1000, 1000)
+                    mutated_individual += random.randint(int(MIN_VAL), int(MAX_VAL))
                 r = mutated_individual
                 str_int_list.append([(l[0][0], r)])
         return str_int_list
@@ -165,7 +165,7 @@ class fuzzer_test_gen:
         return [(offspring1, individual1[0][1])], [(offspring2, individual2[0][1])]
     
 
-    def test_gen(self, data_pool: list):
+    def test_gen(self, data_pool: list, *args):
         test_generation = ['random initializer', 'mutation', 'crossover']
         choice = random.choice(test_generation)
         if type(data_pool[0][0]) == str:
@@ -183,17 +183,17 @@ class fuzzer_test_gen:
                 test_case = random.choice(data_pool)
             elif choice == 'mutation':
                 test_case = random.choice(data_pool)
-                test_case = self.mutate_int([test_case])[0]
+                test_case = self.mutate_int([test_case], para)[0]
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
-                test_case = random.choice(self.crossover_int(test_case_1, test_case_2) )
+                test_case = random.choice(self.crossover_int(test_case_1, test_case_2))
         elif type(data_pool[0][0]) == tuple:
             if choice == 'random initializer':
                 test_case = random.choice(data_pool)
             elif choice == 'mutation':
                 test_case = random.choice(data_pool)
-                test_case = self.mutate_str_int([test_case])[0]
+                test_case = self.mutate_str_int([test_case], para)[0]
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
@@ -213,11 +213,11 @@ class fuzzer_test_gen:
             # n = len(type_list)
             # n = int(input('Enter the number of integer inputs: '))
             if n == 1:
-                test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)))
+                test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)), para)
             elif n == 2:
-                test_input = self.test_gen(self.random_int_int(int(MIN_VAL), int(MAX_VAL)))
+                test_input = self.test_gen(self.random_int_int(int(MIN_VAL), int(MAX_VAL)), para)
             elif n == 3:
-                test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)))
+                test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)), para)
         elif pool_type == 'str':
             # MAX_STRING_LENGTH = input('Enter max. length of the string: ')
             # n = len(type_list)
@@ -228,7 +228,7 @@ class fuzzer_test_gen:
                 test_input = self.test_gen(self.random_string_string(int(MAX_STRING_LENGTH)))
         elif pool_type == 'tuple':
             # MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
-            test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)))
+            test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)), para)
         return test_input
 
 if __name__ == '__main__':
