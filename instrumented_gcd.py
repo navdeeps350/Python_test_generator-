@@ -10,7 +10,7 @@ def gcd_instrumented(a: int, b: int) -> int:
         return a
     if evaluate_condition(4, 'Gt', b, a):
         a, b = (b, a)
-    while b != 0:
+    while evaluate_condition(5, 'NotEq', b, 0):
         temp = b
         b = a % b
         a = temp

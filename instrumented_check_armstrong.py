@@ -10,11 +10,11 @@ def check_armstrong_instrumented(n: int) -> bool:
         return False
     t = n
     sum = 0
-    while t != 0:
+    while evaluate_condition(4, 'NotEq', t, 0):
         r = t % 10
         sum = sum + r * r * r
         t = t // 10
-    if evaluate_condition(4, 'Eq', sum, n):
+    if evaluate_condition(5, 'Eq', sum, n):
         return True
     else:
         return False

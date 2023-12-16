@@ -8,13 +8,13 @@ def cd_count_instrumented(a: int, b: int) -> int:
     a = -1 * a if evaluate_condition(3, 'Lt', a, 0) else a
     b = -1 * b if evaluate_condition(4, 'Lt', b, 0) else b
     result = 0
-    while a != 0:
+    while evaluate_condition(5, 'NotEq', a, 0):
         c = a
         a = b % a
         b = c
     for i in range(1, int(b ** 0.5 + 1)):
-        if evaluate_condition(5, 'Eq', b % i, 0):
-            if evaluate_condition(6, 'Eq', int(b / i), i):
+        if evaluate_condition(6, 'Eq', b % i, 0):
+            if evaluate_condition(7, 'Eq', int(b / i), i):
                 result = result + 1
             else:
                 result = result + 2

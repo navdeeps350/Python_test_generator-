@@ -5,6 +5,8 @@ import random
 import nltk
 import random
 
+from nltk.metrics import distance
+
 from benchmark import *
 from importlib.machinery import SourceFileLoader
 
@@ -137,18 +139,18 @@ def evaluate_condition(num, op, lhs, rhs):  # type: ignore
             if lhs == rhs:
                 distance_false = 1
             else:
-                distance_true = nltk.metrics.distance.edit_distance(lhs, rhs)
+                distance_true = distance.edit_distance(lhs, rhs)
 
         elif op == 'NotEq':
             if lhs == rhs:
                 distance_true = 1
             else: 
-                distance_false = nltk.metrics.distance.edit_distance(lhs, rhs)
+                distance_false = distance.edit_distance(lhs, rhs)
 
 
     update_maps(num, distance_true, distance_false)
 
-    print(num, distance_true, distance_false)
+    # print(num, distance_true, distance_false)
 
     if distance_true == 0:
         return True
