@@ -328,12 +328,14 @@ if __name__ == '__main__':
     fuzz = fuzzer_test_gen(pool_size)
     
     dist_dict = {}
+    out = {}
+    prev_distances_true = {}
     # test_case = [[-5, 1], [-5, 2]]
     for func in function_names:
         if func not in get_imported_functions(path_1):
-            prev_distances_true = {}
-            out = {}
-            out[func] = {}
+            # prev_distances_true = {}
+            # out = {}
+            # out[func] = {}
             globals()[func] = getattr(test_file_1, func)
             for i in range(num_exp):
                 test_case = fuzz.test_input(type_list, para)
@@ -341,17 +343,21 @@ if __name__ == '__main__':
                 # test_case = [-5, 1]
                 try:
                     print(globals()[func](*test_case))
+                    print('func: ', func)
                     print(test_case)
                     # print(distances_true, distances_false)
-                    # print(test_case[i])
+                    # # print(test_case[i])
                     # print('pr_d', prev_distances_true)
                     # print('d', distances_true)
                     if len(distances_true) > len(prev_distances_true):
                         keys = set(distances_true.keys()).difference(set(prev_distances_true.keys()))
                         print('keys: ', keys)
-                        out[func][str(list(keys))] = {}
-                        out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
-                    dist_dict[func] = [distances_true, distances_false]
+                        # out[func][str(list(keys))] = {}
+                        # out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
+                        out[str(list(keys))] = {}
+                        out[str(list(keys))][str(test_case)] = globals()[func](*test_case)
+                        # print(out[str(list(keys))][str(test_case)])
+                    dist_dict = [distances_true, distances_false]
                     prev_distances_true = distances_true.copy()
                 except AssertionError:
                     pass
