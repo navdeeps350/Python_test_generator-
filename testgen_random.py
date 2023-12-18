@@ -4,6 +4,7 @@ import sys
 import random
 import nltk
 import random
+import os
 
 from benchmark import *
 from importlib.machinery import SourceFileLoader
@@ -289,33 +290,6 @@ if __name__ == '__main__':
     #     fuzz = fuzzer_test_gen(pool_size)
     #     print(fuzz.test_input(type_list, para))
 
-
-    # # print(pool_type)
-    # # pool_type = input("Please enter the POOL type: ")
-    # if pool_type == 'int':
-    #     MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
-    #     n = len(type_list)
-    #     # n = int(input('Enter the number of integer inputs: '))
-    #     if n == 1:
-    #         test_input = fuzz.test_gen(fuzz.random_int(int(MIN_VAL), int(MAX_VAL)))
-    #     elif n == 2:
-    #         test_input = fuzz.test_gen(fuzz.random_int_int(int(MIN_VAL), int(MAX_VAL)))
-    #     elif n == 3:
-    #         test_input = fuzz.test_gen(fuzz.random_int_int_int(int(MIN_VAL), int(MAX_VAL)))
-    # elif pool_type == 'str':
-    #     MAX_STRING_LENGTH = input('Enter max. length of the string: ')
-    #     n = len(type_list)
-    #     # n = int(input('Enter the number of string inputs: '))
-    #     if n == 1:
-    #         test_input = fuzz.test_gen(fuzz.random_string(int(MAX_STRING_LENGTH)))
-    #     elif n == 2: 
-    #         test_input = fuzz.test_gen(fuzz.random_string_string(int(MAX_STRING_LENGTH)))
-    # elif pool_type == 'tuple':
-    #     MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
-    #     test_input = fuzz.test_gen(fuzz.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)))
-
-    # print(test_input)
-
     test_file_name_1 = "instrumented_" + test_file_name
     path_1 = test_file_name_1
 
@@ -335,27 +309,27 @@ if __name__ == '__main__':
         if func not in get_imported_functions(path_1):
             # prev_distances_true = {}
             # out = {}
-            # out[func] = {}
+            out[func] = {}
             globals()[func] = getattr(test_file_1, func)
             for i in range(num_exp):
                 test_case = fuzz.test_input(type_list, para)
                 # print(test_case)
                 # test_case = [-5, 1]
                 try:
-                    print(globals()[func](*test_case))
-                    print('func: ', func)
-                    print(test_case)
+                    globals()[func](*test_case)
+                    # print('func: ', func)
+                    # print(test_case)
                     # print(distances_true, distances_false)
                     # # print(test_case[i])
                     # print('pr_d', prev_distances_true)
                     # print('d', distances_true)
                     if len(distances_true) > len(prev_distances_true):
                         keys = set(distances_true.keys()).difference(set(prev_distances_true.keys()))
-                        print('keys: ', keys)
-                        # out[func][str(list(keys))] = {}
-                        # out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
-                        out[str(list(keys))] = {}
-                        out[str(list(keys))][str(test_case)] = globals()[func](*test_case)
+                        # print('keys: ', keys)
+                        out[func][str(list(keys))] = {}
+                        out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
+                        # out[str(list(keys))] = {}
+                        # out[str(list(keys))][str(test_case)] = globals()[func](*test_case)
                         # print(out[str(list(keys))][str(test_case)])
                     dist_dict = [distances_true, distances_false]
                     prev_distances_true = distances_true.copy()
@@ -365,8 +339,36 @@ if __name__ == '__main__':
     print(dist_dict)
     print(out)
 
+    function_names = [func for func in dir(test_file) if not func.startswith('__')]
+
+
     # for func in function_names:
     #     if func not in get_imported_functions(path_1):
 
             # globals()[func] = getattr(test_file_1, func)
             # print(globals()[func](5, 3))
+    
+    f = open("tests_" + test_file_name, "w")
+    f.write("from unittest import TestCase\n")
+    for func in function_names: 
+        f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
+
+    f.write("\nclass Test_example(TestCase):\n")
+    i = 0
+    for o in out.keys():
+        print(out[o])
+        for n in out[o].keys():
+            i += 1
+            n_o = o[:o.rfind('_')]
+            print(out[o][n])
+            for k in out[o][n].keys():
+                f.write(f"\tdef test_{n_o}_{i}(self):\n")
+                f.write(f"\t\ty = {n_o}{tuple(ast.literal_eval(k))}\n")
+                print('k', tuple(ast.literal_eval(k)))
+                if type(out[o][n][k]) == str:
+                    f.write(f"\t\tassert y == \'{out[o][n][k]}\'\n")
+                else:
+                    f.write(f"\t\tassert y == {out[o][n][k]}\n")     
+                print(type(out[o][n][k]))     
+
+    f.close()
