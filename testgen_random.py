@@ -6,7 +6,6 @@ import nltk
 import random
 import os
 
-from benchmark import *
 from importlib.machinery import SourceFileLoader
 
 from _ast import Assert, Return
@@ -96,6 +95,7 @@ class fuzzer_test_gen:
         return individuals
     
     def mutate_int(self, int_lists: list, *args):
+        MIN_VAL, MAX_VAL = args
         mutated_list = []
         for l in int_lists:
             mutated_individual = l.copy()
@@ -109,6 +109,7 @@ class fuzzer_test_gen:
     
     
     def mutate_str_int(self, lists: list, *args):
+        MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = args
         str_int_list = []
         for l in lists:
             r = random.choice(l[0])
@@ -167,6 +168,7 @@ class fuzzer_test_gen:
     
 
     def test_gen(self, data_pool: list, *args):
+        para = args
         test_generation = ['random initializer', 'mutation', 'crossover']
         choice = random.choice(test_generation)
         if type(data_pool[0][0]) == str:
@@ -184,7 +186,7 @@ class fuzzer_test_gen:
                 test_case = random.choice(data_pool)
             elif choice == 'mutation':
                 test_case = random.choice(data_pool)
-                test_case = self.mutate_int([test_case], para)[0]
+                test_case = self.mutate_int([test_case], *para)[0]
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
@@ -194,7 +196,7 @@ class fuzzer_test_gen:
                 test_case = random.choice(data_pool)
             elif choice == 'mutation':
                 test_case = random.choice(data_pool)
-                test_case = self.mutate_str_int([test_case], para)[0]
+                test_case = self.mutate_str_int([test_case], *para)[0]
             elif choice == 'crossover':
                 test_case_1 = random.choice(data_pool)
                 test_case_2 = random.choice(data_pool)
@@ -202,6 +204,7 @@ class fuzzer_test_gen:
         return test_case
     
     def test_input(self, type_list: list, *args):
+        para = args
         if len(set(type_list)) == 1:
             pool_type = type_list[0]
         else:
@@ -214,11 +217,11 @@ class fuzzer_test_gen:
             # n = len(type_list)
             # n = int(input('Enter the number of integer inputs: '))
             if n == 1:
-                test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)), para)
+                test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)), *para)
             elif n == 2:
-                test_input = self.test_gen(self.random_int_int(int(MIN_VAL), int(MAX_VAL)), para)
+                test_input = self.test_gen(self.random_int_int(int(MIN_VAL), int(MAX_VAL)), *para)
             elif n == 3:
-                test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)), para)
+                test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)), *para)
         elif pool_type == 'str':
             # MAX_STRING_LENGTH = input('Enter max. length of the string: ')
             # n = len(type_list)
@@ -229,7 +232,7 @@ class fuzzer_test_gen:
                 test_input = self.test_gen(self.random_string_string(int(MAX_STRING_LENGTH)))
         elif pool_type == 'tuple':
             # MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
-            test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)), para)[0]
+            test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)), *para)[0]
         return test_input
 
 if __name__ == '__main__':
@@ -312,7 +315,7 @@ if __name__ == '__main__':
             out[func] = {}
             globals()[func] = getattr(test_file_1, func)
             for i in range(num_exp):
-                test_case = fuzz.test_input(type_list, para)
+                test_case = fuzz.test_input(type_list, *para)
                 # print(test_case)
                 # test_case = [-5, 1]
                 try:
@@ -356,19 +359,19 @@ if __name__ == '__main__':
     f.write("\nclass Test_example(TestCase):\n")
     i = 0
     for o in out.keys():
-        print(out[o])
+        # print(out[o])
         for n in out[o].keys():
             i += 1
             n_o = o[:o.rfind('_')]
-            print(out[o][n])
+            # print(out[o][n])
             for k in out[o][n].keys():
                 f.write(f"\tdef test_{n_o}_{i}(self):\n")
                 f.write(f"\t\ty = {n_o}{tuple(ast.literal_eval(k))}\n")
-                print('k', tuple(ast.literal_eval(k)))
+                # print('k', tuple(ast.literal_eval(k)))
                 if type(out[o][n][k]) == str:
                     f.write(f"\t\tassert y == \'{out[o][n][k]}\'\n")
                 else:
                     f.write(f"\t\tassert y == {out[o][n][k]}\n")     
-                print(type(out[o][n][k]))     
+                # print(type(out[o][n][k]))     
 
     f.close()

@@ -4,11 +4,11 @@ from benchmark.railfence_cipher import railencrypt
 
 class Test_example(TestCase):
 	def test_raildecrypt_1(self):
-		y = raildecrypt('orlbd', 9)
-		assert y == 'orlbd'
-	def test_raildecrypt_2(self):
-		y = raildecrypt('cvkyqjvjn', 2)
-		assert y == 'cjvvkjynq'
+		y = raildecrypt('pchskiyyxr', 9)
+		assert y == 'pchskiyyrx'
+	def test_railencrypt_2(self):
+		y = railencrypt('m', 10)
+		assert y == 'm'
 	def test_railencrypt_3(self):
-		y = railencrypt('daaxuw', 5)
-		assert y == 'daaxwu'
+		y = railencrypt('uuxetbdytn', 8)
+		assert y == 'uuxetbndty'
