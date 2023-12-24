@@ -25,10 +25,41 @@ INDMUPROB = 0.05  # 0.05
 MUPROB = 0.1  # 0.1
 CXPROB = 0.5  # 0.5
 TOURNSIZE = 3
-LOW = -1000
-UP = 1000
+# LOW = -1000
+# UP = 1000
 REPS = 10
-MAX_STRING_LENGTH = 10
+# MAX_STRING_LENGTH = 10
+
+class BranchInstrumented(ast.NodeTransformer):
+
+    def __init__(self):
+        self.listofnodes = {}
+
+    def visit_FunctionDef(self, node):
+        self.listofnodes[node.name] = []
+        for n in ast.walk(node):
+            if isinstance(n, ast.If):
+                if isinstance(n.test, ast.Call):
+                    self.listofnodes[node.name].append(n.test.args[0].value)
+                elif isinstance(n.test, ast.BoolOp):
+                    for value in n.test.values:
+                        if isinstance(value, ast.Call):
+                            self.listofnodes[node.name].append(value.args[0].value)
+            if isinstance(n, ast.While):
+                if isinstance(n.test, ast.Call):
+                    self.listofnodes[node.name].append(n.test.args[0].value)
+            if isinstance(n, ast.Assign):
+                if isinstance(n.value, ast.IfExp):
+                    if isinstance(n.value.test, ast.Call) and n.value.test.func.id == 'evaluate_condition':
+                        self.listofnodes[node.name].append(n.value.test.args[0].value)
+        return self.generic_visit(node)
+    
+def find_key_by_element(dictionary, element):
+    for key, values in dictionary.items():
+        if element in values:
+            return key
+    return None
+
 
 
 def normalize(x):
@@ -49,9 +80,6 @@ def get_fitness_cgi(individual:list):
     
     global distances_true, distances_false
     global branches, archive_true_branches, archive_false_branches
-    # distances_true = {}
-    # distances_false = {}
-    # print(distances_true, distances_false)
 
     # Run the function under test
     test_file_name_1 = "instrumented_" + test_file_name
@@ -260,6 +288,7 @@ if __name__ == '__main__':
     toolbox.register("select", tools.selTournament, tournsize=TOURNSIZE)
 
 
+    coverage_dict = {}
     coverage = []
     for i in range(REPS):
         archive_true_branches = {}
@@ -267,5 +296,79 @@ if __name__ == '__main__':
         population = toolbox.population(n=NPOP)
         algorithms.eaSimple(population, toolbox, CXPROB, MUPROB, NGEN, verbose=False)
         cov = len(archive_true_branches) + len(archive_false_branches)
+        coverage_dict[cov] = []
+        coverage_dict[cov].append(archive_true_branches)
+        coverage_dict[cov].append(archive_false_branches)
+
         print(cov, archive_true_branches, archive_false_branches)
         coverage.append(cov)
+
+    print(coverage_dict)
+
+    combined_dict = {}
+
+    for dictionary in coverage_dict[max(coverage_dict.keys())]:
+        for key, value in dictionary.items():
+            combined_dict[key] = value
+    # print('cd: ', combined_dict)
+
+    grouped_dict = {}
+
+    for key, value_list in combined_dict.items():
+        tuple_value = tuple(value_list)
+
+        if tuple_value not in grouped_dict:
+            grouped_dict[tuple_value] = [key]
+        else:
+            grouped_dict[tuple_value].append(key)
+
+    # print('gd: ', grouped_dict)
+
+    swapped_dict = {tuple(value): list(key) for key, value in grouped_dict.items()}
+
+    print('sd: ', swapped_dict)
+
+    test_file_name_1 = "instrumented_" + test_file_name
+    path_1 = test_file_name_1
+
+    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
+    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
+
+    b_instrumented = BranchInstrumented()
+    for func in function_names_1:
+        if func not in get_imported_functions(path_1):
+            globals()[func] = getattr(test_file_1, func)
+            source = inspect.getsource(globals()[func])
+            node = ast.parse(source)
+            tree = b_instrumented.visit(node)
+
+    print(b_instrumented.listofnodes)
+
+    f = open("deap_tests_" + test_file_name, "w")
+    f.write("from unittest import TestCase\n")
+    for func in function_names: 
+        f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
+
+    f.write("\nclass Test_example(TestCase):\n")
+    i = 1
+    for key_tup in swapped_dict.keys():
+        # print(key_tup)
+        func_set = set()
+        for k in key_tup:
+            # print(find_key_by_element(b_instrumented.listofnodes, k))
+            o = find_key_by_element(b_instrumented.listofnodes, k)
+            func_set.add(o)
+        for fs in func_set:
+            # print(fs)
+            n_o = fs[:fs.rfind('_')]
+            # print(n_o)
+            f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
+            i = i + 1
+            f.write(f"\t\ty = {n_o}{tuple(swapped_dict[key_tup])}\n")
+            f.write(f"\t\tassert y == ")
+
+
+
+
+
+
