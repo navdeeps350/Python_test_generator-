@@ -365,10 +365,15 @@ if __name__ == '__main__':
             f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
             i = i + 1
             f.write(f"\t\ty = {n_o}{tuple(swapped_dict[key_tup])}\n")
-            f.write(f"\t\tassert y == ")
-
-
-
+            try:
+                globals()[fs] = getattr(test_file_1, fs)
+                output = globals()[func](*tuple(swapped_dict[key_tup]))
+                if type(output) == str:
+                    f.write(f"\t\tassert y == '{output}'")
+                else:
+                    f.write(f"\t\tassert y == {output}")
+            except BaseException:
+                pass
 
 
 

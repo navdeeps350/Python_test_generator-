@@ -93,7 +93,7 @@ def evaluate_condition(num, op, lhs, rhs):  # type: ignore
     if (isinstance(lhs, str) and isinstance(rhs, str)) and (len(lhs) == 1 and len(rhs) == 1):
         lhs = ord(lhs)
         rhs = ord(rhs)
-        print(lhs, rhs)
+        # print(lhs, rhs)
 
     if op == "Eq" and (isinstance(lhs, int)):
         if lhs == rhs:

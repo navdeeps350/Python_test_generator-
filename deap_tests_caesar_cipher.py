@@ -5,8 +5,8 @@ from benchmark.caesar_cipher import encrypt
 class Test_example(TestCase):
 
 	def test_decrypt_1(self):
-		y = decrypt('wglefqov', 93)
-		assert y == 
+		y = decrypt('elrgh', 32)
+		assert y == '&-3()'
 	def test_encrypt_2(self):
-		y = encrypt('wglefqov', 93)
-		assert y == 
+		y = encrypt('elrgh', 32)
+		assert y == '&-3()'
