@@ -4,5 +4,5 @@ from benchmark.common_divisor_count import cd_count
 class Test_example(TestCase):
 
 	def test_cd_count_1(self):
-		y = cd_count(1, -3)
+		y = cd_count(-3, 2)
 		assert y == 1

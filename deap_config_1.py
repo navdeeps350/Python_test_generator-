@@ -37,21 +37,21 @@ class BranchInstrumented(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         self.listofnodes[node.name] = []
-        for n in ast.walk(node):
-            if isinstance(n, ast.If):
-                if isinstance(n.test, ast.Call):
-                    self.listofnodes[node.name].append(n.test.args[0].value)
-                elif isinstance(n.test, ast.BoolOp):
-                    for value in n.test.values:
+        for no in ast.walk(node):
+            if isinstance(no, ast.If):
+                if isinstance(no.test, ast.Call):
+                    self.listofnodes[node.name].append(no.test.args[0].n)
+                elif isinstance(no.test, ast.BoolOp):
+                    for value in no.test.values:
                         if isinstance(value, ast.Call):
-                            self.listofnodes[node.name].append(value.args[0].value)
-            if isinstance(n, ast.While):
-                if isinstance(n.test, ast.Call):
-                    self.listofnodes[node.name].append(n.test.args[0].value)
-            if isinstance(n, ast.Assign):
-                if isinstance(n.value, ast.IfExp):
-                    if isinstance(n.value.test, ast.Call) and n.value.test.func.id == 'evaluate_condition':
-                        self.listofnodes[node.name].append(n.value.test.args[0].value)
+                            self.listofnodes[node.name].append(value.args[0].n)
+            if isinstance(no, ast.While):
+                if isinstance(no.test, ast.Call):
+                    self.listofnodes[node.name].append(no.test.args[0].n)
+            if isinstance(no, ast.Assign):
+                if isinstance(no.value, ast.IfExp):
+                    if isinstance(no.value.test, ast.Call) and no.value.test.func.id == 'evaluate_condition':
+                        self.listofnodes[node.name].append(no.value.test.args[0].n)
         return self.generic_visit(node)
     
 def find_key_by_element(dictionary, element):

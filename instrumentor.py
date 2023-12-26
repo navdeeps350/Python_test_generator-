@@ -4,6 +4,7 @@ import sys
 import random
 import nltk
 import random
+import astunparse
 
 from nltk.metrics import distance
 
@@ -14,11 +15,11 @@ from _ast import Assert, Return
 from typing import Any
 
 
-distances_true: dict[int, int] = {}
-distances_false: dict[int, int] = {}
-branches: list[int] = [1, 2, 3, 4, 5]
-archive_true_branches: dict[int, str] = {}
-archive_false_branches: dict[int, str] = {}
+distances_true = {}
+distances_false = {}
+branches = [1, 2, 3, 4, 5]
+archive_true_branches = {}
+archive_false_branches = {}
 
 
 
@@ -186,7 +187,7 @@ if __name__ == '__main__':
         # print(ast.unparse(tree))
         f.write('\n\n')
 
-        f.write(ast.unparse(tree))
+        f.write(astunparse.unparse(tree))
     f.close()
 
     # print(b_transformer.arg_type_list)
