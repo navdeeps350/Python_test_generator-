@@ -6,6 +6,7 @@ import nltk
 import random
 import os
 
+
 from importlib.machinery import SourceFileLoader
 from nltk.metrics import distance
 
@@ -31,11 +32,11 @@ TOURNSIZE = 3
 REPS = 10
 # MAX_STRING_LENGTH = 10
 
-distances_true: dict[int, int] = {}
-distances_false: dict[int, int] = {}
-branches: list[int] = [1, 2, 3, 4, 5]
-archive_true_branches: dict[int, str] = {}
-archive_false_branches: dict[int, str] = {}
+distances_true = {}
+distances_false = {}
+branches = [1, 2, 3, 4, 5]
+archive_true_branches = {}
+archive_false_branches = {}
 
 
 def update_maps(condition_num, d_true, d_false):
@@ -301,7 +302,6 @@ def evaluate_condition(num, op, lhs, rhs):  # type: ignore
     if (isinstance(lhs, str) and isinstance(rhs, str)) and (len(lhs) == 1 and len(rhs) == 1):
         lhs = ord(lhs)
         rhs = ord(rhs)
-        print(lhs, rhs)
 
     if op == "Eq" and (isinstance(lhs, int)):
         if lhs == rhs:
@@ -364,6 +364,37 @@ def evaluate_condition(num, op, lhs, rhs):  # type: ignore
         return True
     else:
         return False
+    
+
+class BranchInstrumented(ast.NodeTransformer):
+
+    def __init__(self):
+        self.listofnodes = {}
+
+    def visit_FunctionDef(self, node):
+        self.listofnodes[node.name] = []
+        for no in ast.walk(node):
+            if isinstance(no, ast.If):
+                if isinstance(no.test, ast.Call):
+                    self.listofnodes[node.name].append(no.test.args[0].n)
+                elif isinstance(no.test, ast.BoolOp):
+                    for value in no.test.values:
+                        if isinstance(value, ast.Call):
+                            self.listofnodes[node.name].append(value.args[0].n)
+            if isinstance(no, ast.While):
+                if isinstance(no.test, ast.Call):
+                    self.listofnodes[node.name].append(no.test.args[0].n)
+            if isinstance(no, ast.Assign):
+                if isinstance(no.value, ast.IfExp):
+                    if isinstance(no.value.test, ast.Call) and no.value.test.func.id == 'evaluate_condition':
+                        self.listofnodes[node.name].append(no.value.test.args[0].n)
+        return self.generic_visit(node)
+    
+def find_key_by_element(dictionary, element):
+    for key, values in dictionary.items():
+        if element in values:
+            return key
+    return None
 
 
 def normalize(x):
@@ -635,6 +666,7 @@ if __name__ == '__main__':
     toolbox.register("select", tools.selTournament, tournsize=TOURNSIZE)
 
 
+    coverage_dict = {}
     coverage = []
     for i in range(REPS):
         archive_true_branches = {}
@@ -642,5 +674,77 @@ if __name__ == '__main__':
         population = toolbox.population(n=NPOP)
         algorithms.eaSimple(population, toolbox, CXPROB, MUPROB, NGEN, verbose=False)
         cov = len(archive_true_branches) + len(archive_false_branches)
+        coverage_dict[cov] = []
+        coverage_dict[cov].append(archive_true_branches)
+        coverage_dict[cov].append(archive_false_branches)
+
         print(cov, archive_true_branches, archive_false_branches)
         coverage.append(cov)
+
+    print(coverage_dict)
+
+    combined_dict = {}
+
+    for dictionary in coverage_dict[max(coverage_dict.keys())]:
+        for key, value in dictionary.items():
+            combined_dict[key] = value
+
+    grouped_dict = {}
+
+    for key, value_list in combined_dict.items():
+        tuple_value = tuple(value_list)
+
+        if tuple_value not in grouped_dict:
+            grouped_dict[tuple_value] = [key]
+        else:
+            grouped_dict[tuple_value].append(key)
+
+
+    swapped_dict = {tuple(value): list(key) for key, value in grouped_dict.items()}
+
+    print('sd: ', swapped_dict)
+
+    test_file_name_1 = "instrumented_" + test_file_name
+    path_1 = test_file_name_1
+
+    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
+    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
+
+    b_instrumented = BranchInstrumented()
+    for func in function_names_1:
+        if func not in get_imported_functions(path_1):
+            globals()[func] = getattr(test_file_1, func)
+            source = inspect.getsource(globals()[func])
+            node = ast.parse(source)
+            tree = b_instrumented.visit(node)
+
+    print(b_instrumented.listofnodes)
+
+
+    f = open("deap_tests_" + test_file_name, "w")
+    f.write("from unittest import TestCase\n")
+    for func in function_names: 
+        f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
+
+    f.write("\nclass Test_example(TestCase):\n")
+    i = 1
+    for key_tup in swapped_dict.keys():
+        func_set = set()
+        for k in key_tup:
+            o = find_key_by_element(b_instrumented.listofnodes, k)
+            func_set.add(o)
+        for fs in func_set:
+            n_o = fs[:fs.rfind('_')]
+            f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
+            i = i + 1
+            f.write(f"\t\ty = {n_o}{tuple(swapped_dict[key_tup])}\n")
+            try:
+                globals()[fs] = getattr(test_file_1, fs)
+                output = globals()[fs](*tuple(swapped_dict[key_tup]))
+                if type(output) == str:
+                    output = output.replace("\\", "\\\\").replace("'", "\\'")
+                    f.write(f"\t\tassert y == '{output}'")
+                else:
+                    f.write(f"\t\tassert y == {output}")
+            except BaseException:
+                pass

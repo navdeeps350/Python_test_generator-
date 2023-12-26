@@ -210,12 +210,7 @@ class fuzzer_test_gen:
         else:
             pool_type = 'tuple'
         n = len(type_list)
-        # print(pool_type)
-        # pool_type = input("Please enter the POOL type: ")
         if pool_type == 'int':
-            # MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
-            # n = len(type_list)
-            # n = int(input('Enter the number of integer inputs: '))
             if n == 1:
                 test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)), *para)
             elif n == 2:
@@ -223,15 +218,11 @@ class fuzzer_test_gen:
             elif n == 3:
                 test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)), *para)
         elif pool_type == 'str':
-            # MAX_STRING_LENGTH = input('Enter max. length of the string: ')
-            # n = len(type_list)
-            # n = int(input('Enter the number of string inputs: '))
             if n == 1:
                 test_input = self.test_gen(self.random_string(int(MAX_STRING_LENGTH)))
             elif n == 2: 
                 test_input = self.test_gen(self.random_string_string(int(MAX_STRING_LENGTH)))
         elif pool_type == 'tuple':
-            # MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
             test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)), *para)[0]
         return test_input
 
@@ -248,7 +239,6 @@ if __name__ == '__main__':
     
 
     function_names = [func for func in dir(test_file) if not func.startswith('__')]
-    # print(function_names)
 
     b_transformer = BranchTransformer(function_names)
 
@@ -262,21 +252,14 @@ if __name__ == '__main__':
         type_list.append(t.annotation.id)
 
     
-    # print(type_list)
-
-    # print(b_transformer.arg_type_list)
-
     
     pool_size = int(input("Please enter the POOL size: "))
-    # fuzz = fuzzer_test_gen(pool_size)
-    # print(fuzz.test_input(type_list))
 
     if len(set(type_list)) == 1:
         pool_type = type_list[0]
     else:
         pool_type = 'tuple'
 
-    # n = len(type_list)
     if pool_type == 'int':
         MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
         para = (MIN_VAL, MAX_VAL)
@@ -287,19 +270,12 @@ if __name__ == '__main__':
         MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
         para = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
     
-    
-    # for i in range(100):
-    
-    #     fuzz = fuzzer_test_gen(pool_size)
-    #     print(fuzz.test_input(type_list, para))
 
     test_file_name_1 = "instrumented_" + test_file_name
     path_1 = test_file_name_1
 
     test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
     function_names = [func for func in dir(test_file_1) if not func.startswith('__')]
-    # print(function_names)
-    # print(get_imported_functions(path_1))
 
     num_exp = int(input('Enter the number of test cases you want to run: '))
     fuzz = fuzzer_test_gen(pool_size)
@@ -307,33 +283,18 @@ if __name__ == '__main__':
     dist_dict = {}
     out = {}
     prev_distances_true = {}
-    # test_case = [[-5, 1], [-5, 2]]
     for func in function_names:
         if func not in get_imported_functions(path_1):
-            # prev_distances_true = {}
-            # out = {}
             out[func] = {}
             globals()[func] = getattr(test_file_1, func)
             for i in range(num_exp):
                 test_case = fuzz.test_input(type_list, *para)
-                # print(test_case)
-                # test_case = [-5, 1]
                 try:
                     globals()[func](*test_case)
-                    # print('func: ', func)
-                    # print(test_case)
-                    # print(distances_true, distances_false)
-                    # # print(test_case[i])
-                    # print('pr_d', prev_distances_true)
-                    # print('d', distances_true)
                     if len(distances_true) > len(prev_distances_true):
                         keys = set(distances_true.keys()).difference(set(prev_distances_true.keys()))
-                        # print('keys: ', keys)
                         out[func][str(list(keys))] = {}
                         out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
-                        # out[str(list(keys))] = {}
-                        # out[str(list(keys))][str(test_case)] = globals()[func](*test_case)
-                        # print(out[str(list(keys))][str(test_case)])
                     dist_dict = [distances_true, distances_false]
                     prev_distances_true = distances_true.copy()
                 except AssertionError:
@@ -344,12 +305,6 @@ if __name__ == '__main__':
 
     function_names = [func for func in dir(test_file) if not func.startswith('__')]
 
-
-    # for func in function_names:
-    #     if func not in get_imported_functions(path_1):
-
-            # globals()[func] = getattr(test_file_1, func)
-            # print(globals()[func](5, 3))
     
     f = open("tests_" + test_file_name, "w")
     f.write("from unittest import TestCase\n")
@@ -359,19 +314,16 @@ if __name__ == '__main__':
     f.write("\nclass Test_example(TestCase):\n")
     i = 0
     for o in out.keys():
-        # print(out[o])
         for n in out[o].keys():
             i += 1
             n_o = o[:o.rfind('_')]
-            # print(out[o][n])
             for k in out[o][n].keys():
                 f.write(f"\tdef test_{n_o}_{i}(self):\n")
                 f.write(f"\t\ty = {n_o}{tuple(ast.literal_eval(k))}\n")
-                # print('k', tuple(ast.literal_eval(k)))
                 if type(out[o][n][k]) == str:
-                    f.write(f"\t\tassert y == \'{out[o][n][k]}\'\n")
+                    w = out[o][n][k].replace("\\", "\\\\").replace("'", "\\'")
+                    f.write(f"\t\tassert y == \'{w}\'\n")
                 else:
                     f.write(f"\t\tassert y == {out[o][n][k]}\n")     
-                # print(type(out[o][n][k]))     
 
     f.close()

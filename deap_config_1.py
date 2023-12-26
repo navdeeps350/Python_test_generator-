@@ -219,10 +219,6 @@ class DeapGenetic:
         return creator.Individual(lists), 
 
 
-    
-
-
-
 
 if __name__ == '__main__':
 
@@ -310,7 +306,6 @@ if __name__ == '__main__':
     for dictionary in coverage_dict[max(coverage_dict.keys())]:
         for key, value in dictionary.items():
             combined_dict[key] = value
-    # print('cd: ', combined_dict)
 
     grouped_dict = {}
 
@@ -322,7 +317,6 @@ if __name__ == '__main__':
         else:
             grouped_dict[tuple_value].append(key)
 
-    # print('gd: ', grouped_dict)
 
     swapped_dict = {tuple(value): list(key) for key, value in grouped_dict.items()}
 
@@ -344,6 +338,7 @@ if __name__ == '__main__':
 
     print(b_instrumented.listofnodes)
 
+
     f = open("deap_tests_" + test_file_name, "w")
     f.write("from unittest import TestCase\n")
     for func in function_names: 
@@ -352,23 +347,20 @@ if __name__ == '__main__':
     f.write("\nclass Test_example(TestCase):\n")
     i = 1
     for key_tup in swapped_dict.keys():
-        # print(key_tup)
         func_set = set()
         for k in key_tup:
-            # print(find_key_by_element(b_instrumented.listofnodes, k))
             o = find_key_by_element(b_instrumented.listofnodes, k)
             func_set.add(o)
         for fs in func_set:
-            # print(fs)
             n_o = fs[:fs.rfind('_')]
-            # print(n_o)
             f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
             i = i + 1
             f.write(f"\t\ty = {n_o}{tuple(swapped_dict[key_tup])}\n")
             try:
                 globals()[fs] = getattr(test_file_1, fs)
-                output = globals()[func](*tuple(swapped_dict[key_tup]))
+                output = globals()[fs](*tuple(swapped_dict[key_tup]))
                 if type(output) == str:
+                    output = output.replace("\\", "\\\\").replace("'", "\\'")
                     f.write(f"\t\tassert y == '{output}'")
                 else:
                     f.write(f"\t\tassert y == {output}")

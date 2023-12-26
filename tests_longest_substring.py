@@ -3,5 +3,5 @@ from benchmark.longest_substring import longest_sorted_substr
 
 class Test_example(TestCase):
 	def test_longest_sorted_substr_1(self):
-		y = longest_sorted_substr('xugtjhb',)
-		assert y == 'gt'
+		y = longest_sorted_substr('wlob',)
+		assert y == 'lo'

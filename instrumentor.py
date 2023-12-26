@@ -189,5 +189,3 @@ if __name__ == '__main__':
 
         f.write(astunparse.unparse(tree))
     f.close()
-
-    # print(b_transformer.arg_type_list)
