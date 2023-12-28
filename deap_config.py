@@ -5,7 +5,8 @@ import random
 import nltk
 import random
 import os
-
+import time
+import re
 
 from importlib.machinery import SourceFileLoader
 from nltk.metrics import distance
@@ -496,8 +497,20 @@ def get_fitness_cgi(individual):
 
 class deap_gen:
 
+    def __init__(self, pool_type, *args):
+        self.pool_type = pool_type
+        if self.pool_type == 'int':
+            self.MIN_VAL, self.MAX_VAL = args
+        elif self.pool_type == 'str':
+            self.MAX_STRING_LENGTH = args[0]
+            print(self.MAX_STRING_LENGTH)
+        elif self.pool_type == 'tuple':
+            self.MAX_STRING_LENGTH, self.MIN_VAL, self.MAX_VAL = args
+
+        
+
     def random_integer(self):
-        return random.randint(int(MIN_VAL), int(MAX_VAL))
+        return random.randint(int(self.MIN_VAL), int(self.MAX_VAL))
 
     def crossover_int(self, individual1: list, individual2: list):
             parent1 = individual1
@@ -510,12 +523,12 @@ class deap_gen:
 
         for i in range(len(mutated_individual)):
             if random.random() < 1 / len(mutated_individual):
-                mutated_individual[i] += random.randint(int(MIN_VAL), int(MAX_VAL))
+                mutated_individual[i] += random.randint(int(self.MIN_VAL), int(self.MAX_VAL))
                 
         return creator.Individual(mutated_individual),
 
     def random_string(self):
-        l = random.randint(0, int(MAX_STRING_LENGTH))
+        l = random.randint(0, int(self.MAX_STRING_LENGTH))
         s = ""
         for i in range(l):
             random_character = chr(random.randrange(32, 127))
@@ -552,12 +565,12 @@ class deap_gen:
 
 
     def random_str_int(self):
-        l = random.randint(0, int(MAX_STRING_LENGTH))
+        l = random.randint(0, int(self.MAX_STRING_LENGTH))
         s = ""
         for i in range(l):
             random_character = chr(random.randrange(97, 122))
             s = s + random_character
-        return (s, random.randint(int(MIN_VAL), int(MAX_VAL)))
+        return (s, random.randint(int(self.MIN_VAL), int(self.MAX_VAL)))
 
 
     def crossover_str_int(self, individual1: list, individual2: list):
@@ -596,10 +609,185 @@ class deap_gen:
             elif type(r) == int:
                 mutated_individual = r
                 if random.random() < 1 / len(l):
-                    mutated_individual += random.randint(int(MIN_VAL), int(MAX_VAL))
+                    mutated_individual += random.randint(int(self.MIN_VAL), int(self.MAX_VAL))
                 r = mutated_individual
                 lists = [(l[0], r)]
         return creator.Individual(lists), 
+
+
+def deap(n, pool_type, function_names, *args):
+    
+    function_names = function_names
+    n = n
+    pool_type = pool_type
+    para = args
+    print(para)
+    deap = deap_gen(pool_type, *para)
+
+
+    # creator.create("Fitness", base.Fitness, weights=(-1.0,))
+    # creator.create("Individual", list, fitness=creator.Fitness)
+    # toolbox = base.Toolbox()
+
+    if pool_type == 'int':
+        # MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
+        toolbox.register("attr_int", deap.random_integer)
+        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_int, n=n)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", get_fitness_cgi)
+        toolbox.register("mate", deap.crossover_int)
+        toolbox.register("mutate", deap.mutate_int)
+    elif pool_type == 'str':
+        # MAX_STRING_LENGTH = input('Enter max. length of the string: ')
+        toolbox.register('attr_str', deap.random_string)
+        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_str, n=n)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", get_fitness_cgi)
+        toolbox.register("mate", deap.crossover_str)
+        toolbox.register("mutate", deap.mutate_str)
+    elif pool_type == 'tuple':
+        # MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
+        toolbox.register("attr_tuple", deap.random_str_int)
+        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_tuple, n=n)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", get_fitness_cgi)
+        toolbox.register("mate", deap.crossover_str_int)
+        toolbox.register("mutate", deap.mutate_str_int)        
+
+    toolbox.register("select", tools.selTournament, tournsize=TOURNSIZE)
+
+    test_file_name_1 = "instrumented_" + test_file_name
+    path_1 = test_file_name_1
+
+    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
+    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
+    path_deap_test = 'deap_tests_' + test_file_name
+
+
+    # b_instrumented = BranchInstrumented()
+    # for func in function_names_1:
+    #     if func not in get_imported_functions(path_1):
+    #         globals()[func] = getattr(test_file_1, func)
+    #         source = inspect.getsource(globals()[func])
+    #         node = ast.parse(source)
+    #         tree = b_instrumented.visit(node)
+
+    # print(b_instrumented.listofnodes)
+
+    # b_instrumented = {'gcd_instrumented': [1, 2, 3, 4, 5]}
+
+
+    coverage_dict = {}
+    coverage = []
+    swapped_dict_list = []
+    for i in range(10):
+        global archive_true_branches, archive_false_branches
+        archive_true_branches = {}
+        archive_false_branches = {}
+        population = toolbox.population(n=NPOP)
+        algorithms.eaSimple(population, toolbox, CXPROB, MUPROB, NGEN, verbose=False)
+        cov = len(archive_true_branches) + len(archive_false_branches)
+        coverage_dict[cov] = []
+        coverage_dict[cov].append(archive_true_branches)
+        coverage_dict[cov].append(archive_false_branches)
+
+        # print(cov, archive_true_branches, archive_false_branches)
+        coverage.append(cov)
+
+        print(coverage_dict)
+
+        combined_dict = {}
+
+        for dictionary in coverage_dict[max(coverage_dict.keys())]:
+            for key, value in dictionary.items():
+                combined_dict[key] = value
+        # print(combined_dict)
+
+        grouped_dict = {}
+
+        for key, value_list in combined_dict.items():
+            tuple_value = tuple(value_list)
+
+            if tuple_value not in grouped_dict:
+                grouped_dict[tuple_value] = [key]
+            else:
+                grouped_dict[tuple_value].append(key)
+        # print(grouped_dict)
+
+
+        swapped_dict = {tuple(value): list(key) for key, value in grouped_dict.items()}
+
+        print('sd: ', swapped_dict)
+        swapped_dict_list.append(swapped_dict)
+        
+    # print(swapped_dict_list)
+    test_file_name_1 = "instrumented_" + test_file_name
+    path_1 = test_file_name_1
+
+    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
+    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
+
+    b_instrumented = BranchInstrumented()
+    for func_1 in function_names_1:
+        if func_1 not in get_imported_functions(path_1):
+            globals()[func_1] = getattr(test_file_1, func_1)
+            source = inspect.getsource(globals()[func_1])
+            node = ast.parse(source)
+            tree = b_instrumented.visit(node)
+
+    print(b_instrumented.listofnodes)
+    print(swapped_dict_list)
+
+    return swapped_dict_list, b_instrumented.listofnodes
+    # for sdk in swapped_dict_list:
+    #     print('sdk: ', sdk)
+    #     f = open("deap_tests_" + test_file_name, "w")
+    #     f.write("from unittest import TestCase\n")
+    #     for func in function_names: 
+    #         f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
+
+    #     f.write("\nclass Test_example(TestCase):\n")
+    #     i = 1
+    #     for key_tup in sdk.keys():
+    #         # print(key_tup)
+    #         func_set = set()
+    #         for k in key_tup:
+    #             o = find_key_by_element(b_instrumented.listofnodes, k)
+    #             func_set.add(o)
+    #         for fs in func_set:
+    #             # print(fs)
+    #             n_o = fs[:fs.rfind('_')]
+    #             f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
+    #             i = i + 1
+    #             f.write(f"\t\ty = {n_o}{tuple(sdk[key_tup])}\n")
+    #             try:
+    #                 globals()[fs] = getattr(test_file_1, fs)
+    #                 output = globals()[fs](*tuple(sdk[key_tup]))
+    #                 if type(output) == str:
+    #                     output = output.replace("\\", "\\\\").replace("'", "\\'")
+    #                     f.write(f"\t\tassert y == '{output}'\n")
+    #                 else:
+    #                     f.write(f"\t\tassert y == {output}\n")
+    #             except BaseException:
+    #                 pass
+    #     time.sleep(1)
+    #     print(path_original, path_deap_test)
+    #     stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
+    #     output_deap_test = stream_2.read()
+    #     # print(output_deap_test)
+    #     o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
+    #     print(o_2)
+        # time.sleep(1)
+
+
+
+    # return swapped_dict
+
+    # return coverage_dict
+
+        # return deap_config(test_file_name)
+
+
 
 
 if __name__ == '__main__':
@@ -613,6 +801,14 @@ if __name__ == '__main__':
 
     function_names = [func for func in dir(test_file) if not func.startswith('__')]
 
+    test_file_name_1 = "instrumented_" + test_file_name
+    path_1 = test_file_name_1
+
+    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
+    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
+
+    path_deap_test = 'deap_tests_' + test_file_name
+
     b_transformer = BranchTransformer(function_names)
 
     for func in function_names:
@@ -624,13 +820,6 @@ if __name__ == '__main__':
     for t in b_transformer.arg_type_list:
         type_list.append(t.annotation.id)
 
-
-    deap = deap_gen()
-
-    creator.create("Fitness", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.Fitness)
-    toolbox = base.Toolbox()
-
     if len(set(type_list)) == 1:
         pool_type = type_list[0]
     else:
@@ -640,111 +829,73 @@ if __name__ == '__main__':
 
     if pool_type == 'int':
         MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
-        toolbox.register("attr_int", deap.random_integer)
-        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_int, n=n)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        toolbox.register("evaluate", get_fitness_cgi)
-        toolbox.register("mate", deap.crossover_int)
-        toolbox.register("mutate", deap.mutate_int)
+        parameters = (MIN_VAL, MAX_VAL)
     elif pool_type == 'str':
         MAX_STRING_LENGTH = input('Enter max. length of the string: ')
-        toolbox.register('attr_str', deap.random_string)
-        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_str, n=n)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        toolbox.register("evaluate", get_fitness_cgi)
-        toolbox.register("mate", deap.crossover_str)
-        toolbox.register("mutate", deap.mutate_str)
+        parameters = (MAX_STRING_LENGTH,)
     elif pool_type == 'tuple':
         MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
-        toolbox.register("attr_tuple", deap.random_str_int)
-        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_tuple, n=n)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        toolbox.register("evaluate", get_fitness_cgi)
-        toolbox.register("mate", deap.crossover_str_int)
-        toolbox.register("mutate", deap.mutate_str_int)        
+        parameters = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
 
-    toolbox.register("select", tools.selTournament, tournsize=TOURNSIZE)
+    creator.create("Fitness", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", list, fitness=creator.Fitness)
+    toolbox = base.Toolbox()
 
 
-    coverage_dict = {}
-    coverage = []
-    for i in range(REPS):
-        archive_true_branches = {}
-        archive_false_branches = {}
-        population = toolbox.population(n=NPOP)
-        algorithms.eaSimple(population, toolbox, CXPROB, MUPROB, NGEN, verbose=False)
-        cov = len(archive_true_branches) + len(archive_false_branches)
-        coverage_dict[cov] = []
-        coverage_dict[cov].append(archive_true_branches)
-        coverage_dict[cov].append(archive_false_branches)
+    
+        
+    swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, *parameters)
+    print(swap_dict_list)
+    print(list_of_nodes)
 
-        print(cov, archive_true_branches, archive_false_branches)
-        coverage.append(cov)
+    for sdk in swap_dict_list:
+        print('sdk: ', sdk)
+        f = open("deap_tests_" + test_file_name, "w")
+        f.write("from unittest import TestCase\n")
+        for func in function_names: 
+            f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
 
-    print(coverage_dict)
+        f.write("\nclass Test_example(TestCase):\n")
+        i = 0
+        for key_tup in sdk.keys():
+            # print(key_tup)
+            func_set = set()
+            for k in key_tup:
+                o = find_key_by_element(list_of_nodes, k)
+                func_set.add(o)
+            for fs in func_set:
+                # print(fs)
+                i = i + 1
+                n_o = fs[:fs.rfind('_')]
+                f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
+                # i = i + 1
+                f.write(f"\t\ty = {n_o}{tuple(sdk[key_tup])}\n")
+                try:
+                    globals()[fs] = getattr(test_file_1, fs)
+                    output = globals()[fs](*tuple(sdk[key_tup]))
+                    if type(output) == str:
+                        output = output.replace("\\", "\\\\").replace("'", "\\'")
+                        f.write(f"\t\tassert y == '{output}'\n")
+                    else:
+                        f.write(f"\t\tassert y == {output}\n")
+                except BaseException:
+                    pass
+        print(path_original, path_deap_test)
+        stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
+        output_deap_test = stream_2.read()
+        # print(output_deap_test)
+        o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
+        print(o_2)
+        time.sleep(1)
 
-    combined_dict = {}
-
-    for dictionary in coverage_dict[max(coverage_dict.keys())]:
-        for key, value in dictionary.items():
-            combined_dict[key] = value
-
-    grouped_dict = {}
-
-    for key, value_list in combined_dict.items():
-        tuple_value = tuple(value_list)
-
-        if tuple_value not in grouped_dict:
-            grouped_dict[tuple_value] = [key]
-        else:
-            grouped_dict[tuple_value].append(key)
+    # stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
+    # output_deap_test = stream_2.read()
+    # # print(output_deap_test)
+    # o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
+    # print(o_2)
+    # time.sleep(1)
 
 
-    swapped_dict = {tuple(value): list(key) for key, value in grouped_dict.items()}
+        
+    # deap_config(test_file_name, swapped_dict)
 
-    print('sd: ', swapped_dict)
-
-    test_file_name_1 = "instrumented_" + test_file_name
-    path_1 = test_file_name_1
-
-    test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
-    function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
-
-    b_instrumented = BranchInstrumented()
-    for func in function_names_1:
-        if func not in get_imported_functions(path_1):
-            globals()[func] = getattr(test_file_1, func)
-            source = inspect.getsource(globals()[func])
-            node = ast.parse(source)
-            tree = b_instrumented.visit(node)
-
-    print(b_instrumented.listofnodes)
-
-
-    f = open("deap_tests_" + test_file_name, "w")
-    f.write("from unittest import TestCase\n")
-    for func in function_names: 
-        f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
-
-    f.write("\nclass Test_example(TestCase):\n")
-    i = 1
-    for key_tup in swapped_dict.keys():
-        func_set = set()
-        for k in key_tup:
-            o = find_key_by_element(b_instrumented.listofnodes, k)
-            func_set.add(o)
-        for fs in func_set:
-            n_o = fs[:fs.rfind('_')]
-            f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
-            i = i + 1
-            f.write(f"\t\ty = {n_o}{tuple(swapped_dict[key_tup])}\n")
-            try:
-                globals()[fs] = getattr(test_file_1, fs)
-                output = globals()[fs](*tuple(swapped_dict[key_tup]))
-                if type(output) == str:
-                    output = output.replace("\\", "\\\\").replace("'", "\\'")
-                    f.write(f"\t\tassert y == '{output}'")
-                else:
-                    f.write(f"\t\tassert y == {output}")
-            except BaseException:
-                pass

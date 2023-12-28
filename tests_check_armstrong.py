@@ -3,5 +3,8 @@ from benchmark.check_armstrong import check_armstrong
 
 class Test_example(TestCase):
 	def test_check_armstrong_1(self):
-		y = check_armstrong(41,)
+		y = check_armstrong(75,)
+		assert y == False
+	def test_check_armstrong_2(self):
+		y = check_armstrong(159,)
 		assert y == False

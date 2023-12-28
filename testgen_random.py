@@ -5,6 +5,7 @@ import random
 import nltk
 import random
 import os
+import re
 
 from importlib.machinery import SourceFileLoader
 
@@ -211,6 +212,7 @@ class fuzzer_test_gen:
             pool_type = 'tuple'
         n = len(type_list)
         if pool_type == 'int':
+            MIN_VAL, MAX_VAL = args
             if n == 1:
                 test_input = self.test_gen(self.random_int(int(MIN_VAL), int(MAX_VAL)), *para)
             elif n == 2:
@@ -218,66 +220,28 @@ class fuzzer_test_gen:
             elif n == 3:
                 test_input = self.test_gen(self.random_int_int_int(int(MIN_VAL), int(MAX_VAL)), *para)
         elif pool_type == 'str':
+            MAX_STRING_LENGTH, = args
             if n == 1:
                 test_input = self.test_gen(self.random_string(int(MAX_STRING_LENGTH)))
             elif n == 2: 
                 test_input = self.test_gen(self.random_string_string(int(MAX_STRING_LENGTH)))
         elif pool_type == 'tuple':
+            MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = args
             test_input = self.test_gen(self.random_str_int(int(MAX_STRING_LENGTH), int(MIN_VAL), int(MAX_VAL)), *para)[0]
         return test_input
 
-if __name__ == '__main__':
+def test_gen(test_file_name, pool_size, type_list, num_exp, *args):
 
-    type_list = []
-
-    test_file_name = input('enter the file for testing: ')
-    path_original = 'benchmark/' + test_file_name
-    path_instrumented = 'instrumented_' + test_file_name
-
-    test_file = SourceFileLoader(test_file_name, path_original).load_module()
-
-    
-
-    function_names = [func for func in dir(test_file) if not func.startswith('__')]
-
-    b_transformer = BranchTransformer(function_names)
-
-    for func in function_names:
-        globals()[func] = getattr(test_file, func)
-        source = inspect.getsource(globals()[func])
-        node = ast.parse(source)
-        tree = b_transformer.visit(node)
-
-    for t in b_transformer.arg_type_list:
-        type_list.append(t.annotation.id)
-
-    
-    
-    pool_size = int(input("Please enter the POOL size: "))
-
-    if len(set(type_list)) == 1:
-        pool_type = type_list[0]
-    else:
-        pool_type = 'tuple'
-
-    if pool_type == 'int':
-        MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
-        para = (MIN_VAL, MAX_VAL)
-    elif pool_type == 'str':
-        MAX_STRING_LENGTH = input('Enter max. length of the string: ')
-        para = (MAX_STRING_LENGTH)
-    elif pool_type == 'tuple':
-        MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
-        para = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
-    
+    para = args    
 
     test_file_name_1 = "instrumented_" + test_file_name
     path_1 = test_file_name_1
+    path_original = 'benchmark/' + test_file_name
 
     test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
     function_names = [func for func in dir(test_file_1) if not func.startswith('__')]
 
-    num_exp = int(input('Enter the number of test cases you want to run: '))
+    # num_exp = int(input('Enter the number of test cases you want to run: '))
     fuzz = fuzzer_test_gen(pool_size)
     
     dist_dict = {}
@@ -303,6 +267,7 @@ if __name__ == '__main__':
     print(dist_dict)
     print(out)
 
+    test_file = SourceFileLoader(test_file_name, path_original).load_module()
     function_names = [func for func in dir(test_file) if not func.startswith('__')]
 
     
@@ -327,3 +292,63 @@ if __name__ == '__main__':
                     f.write(f"\t\tassert y == {out[o][n][k]}\n")     
 
     f.close()
+
+
+if __name__ == '__main__':
+
+    type_list = []
+
+    test_file_name = input('enter the file for testing: ')
+    path_original = 'benchmark/' + test_file_name
+    path_test = 'tests_' + test_file_name
+
+
+    test_file = SourceFileLoader(test_file_name, path_original).load_module()
+
+
+    function_names = [func for func in dir(test_file) if not func.startswith('__')]
+
+    b_transformer = BranchTransformer(function_names)
+
+    for func in function_names:
+        globals()[func] = getattr(test_file, func)
+        source = inspect.getsource(globals()[func])
+        node = ast.parse(source)
+        tree = b_transformer.visit(node)
+
+    for t in b_transformer.arg_type_list:
+        type_list.append(t.annotation.id)
+
+
+    
+    pool_size = int(input("Please enter the POOL size: "))
+
+    if len(set(type_list)) == 1:
+        pool_type = type_list[0]
+    else:
+        pool_type = 'tuple'
+
+    # n = len(type_list)
+    if pool_type == 'int':
+        MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
+        parameters = (MIN_VAL, MAX_VAL)
+    elif pool_type == 'str':
+        MAX_STRING_LENGTH = input('Enter max. length of the string: ')
+        parameters = (MAX_STRING_LENGTH,)
+    elif pool_type == 'tuple':
+        MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
+        parameters = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
+    num_exp = int(input('Enter the number of test cases you want to run: '))
+
+    # test_gen(test_file_name, pool_size, type_list, num_exp, *parameters)
+
+    for i in range(10):
+
+        test_gen(test_file_name, pool_size, type_list, num_exp, *parameters)
+
+
+        stream_1 = os.popen(f'mut.py --target {path_original} --unit-test {path_test}')
+        output_test = stream_1.read()
+        o_1 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_test).group(1)
+        print(o_1)
+

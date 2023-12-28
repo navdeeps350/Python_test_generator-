@@ -13,7 +13,7 @@ from nltk.metrics import distance
 from _ast import Assert, Return
 from typing import Any
 
-from instrumentor import BranchTransformer, distances_true, distances_false, branches, archive_true_branches, archive_false_branches
+from instrumentor import BranchTransformer, distances_true, distances_false
 from testgen_random import get_imported_functions
 
 from deap import creator, base, tools, algorithms
@@ -29,6 +29,16 @@ TOURNSIZE = 3
 # UP = 1000
 REPS = 10
 # MAX_STRING_LENGTH = 10
+
+archive_true_branches = {}
+archive_false_branches = {}
+branches = [1, 2, 3, 4, 5]
+distances_t = {}
+distances_f = {}
+
+distances_t = distances_true.copy()
+distances_f = distances_false.copy()
+
 
 class BranchInstrumented(ast.NodeTransformer):
 
@@ -78,8 +88,11 @@ def get_fitness_cgi(individual:list):
     else:
         x = individual
     
-    global distances_true, distances_false
+    global distances_t, distances_f
     global branches, archive_true_branches, archive_false_branches
+
+    distances_t = {}
+    distances_f = {}
 
     # Run the function under test
     test_file_name_1 = "instrumented_" + test_file_name
@@ -96,21 +109,24 @@ def get_fitness_cgi(individual:list):
             except BaseException:
                 pass
 
+    distances_t = distances_true.copy()
+    distances_f = distances_false.copy()
+
 
     # Sum up branch distances
     fitness = 0.0
     for branch in branches:
-        if branch in distances_true:
-            if distances_true[branch] == 0 and branch not in archive_true_branches:
+        if branch in distances_t:
+            if distances_t[branch] == 0 and branch not in archive_true_branches:
                 archive_true_branches[branch] = x
             if branch not in archive_true_branches:
-                fitness += normalize(distances_true[branch])
+                fitness += normalize(distances_t[branch])
     for branch in branches:
-        if branch in distances_false:
-            if distances_false[branch] == 0 and branch not in archive_false_branches:
+        if branch in distances_f:
+            if distances_f[branch] == 0 and branch not in archive_false_branches:
                 archive_false_branches[branch] = x
             if branch not in archive_false_branches:
-                fitness += normalize(distances_false[branch])
+                fitness += normalize(distances_f[branch])
 
     return fitness,
 
