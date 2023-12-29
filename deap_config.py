@@ -403,7 +403,7 @@ def normalize(x):
 
 def get_fitness_cgi(individual):
 
-    if pool_type == 'tuple':
+    if pool_type_1 == 'tuple':
         x = individual[0]
     else:
         x = individual
@@ -415,17 +415,17 @@ def get_fitness_cgi(individual):
     # print(distances_true, distances_false)
     # Run the function under test
     
-    if test_file_name == 'exponentiation.py':
+    if test_file_name_new == 'exponentiation.py':
         try:
             exponentiation_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'anagram_check.py':
+    elif test_file_name_new == 'anagram_check.py':
         try: 
             anagram_check_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'caesar_cipher.py':
+    elif test_file_name_new == 'caesar_cipher.py':
         try:
             decrypt_instrumented(*x)
         except BaseException:
@@ -434,32 +434,32 @@ def get_fitness_cgi(individual):
             encrypt_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'common_divisor_count.py':
+    elif test_file_name_new == 'common_divisor_count.py':
         try:
             cd_count_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'gcd.py':
+    elif test_file_name_new == 'gcd.py':
         try:
             gcd_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'longest_substring.py':
+    elif test_file_name_new == 'longest_substring.py':
         try:
             longest_sorted_substr_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'rabin_karp.py':
+    elif test_file_name_new == 'rabin_karp.py':
         try:
             rabin_karp_search_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'check_armstrong.py':
+    elif test_file_name_new == 'check_armstrong.py':
         try:
             check_armstrong_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'railfence_cipher.py':
+    elif test_file_name_new == 'railfence_cipher.py':
         try:
             raildecrypt_instrumented(*x)
         except BaseException:
@@ -468,7 +468,7 @@ def get_fitness_cgi(individual):
             railencrypt_instrumented(*x)
         except BaseException:
             pass
-    elif test_file_name == 'zellers_birthday.py':
+    elif test_file_name_new == 'zellers_birthday.py':
         try:
             zeller_instrumented(*x)
         except BaseException:
@@ -615,21 +615,23 @@ class deap_gen:
         return creator.Individual(lists), 
 
 
-def deap(n, pool_type, function_names, *args):
-    
+def deap(n, pool_type, function_names, test_file_name, *args):
+    global test_file_name_new
+    global pool_type_1
     function_names = function_names
     n = n
-    pool_type = pool_type
+    pool_type_1 = pool_type
     para = args
     print(para)
-    deap = deap_gen(pool_type, *para)
+    test_file_name_new = test_file_name
+    deap = deap_gen(pool_type_1, *para)
 
 
-    # creator.create("Fitness", base.Fitness, weights=(-1.0,))
-    # creator.create("Individual", list, fitness=creator.Fitness)
-    # toolbox = base.Toolbox()
+    creator.create("Fitness", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", list, fitness=creator.Fitness)
+    toolbox = base.Toolbox()
 
-    if pool_type == 'int':
+    if pool_type_1 == 'int':
         # MIN_VAL, MAX_VAL = input('Enter min. and max. values for the integer: ').split()
         toolbox.register("attr_int", deap.random_integer)
         toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_int, n=n)
@@ -637,7 +639,7 @@ def deap(n, pool_type, function_names, *args):
         toolbox.register("evaluate", get_fitness_cgi)
         toolbox.register("mate", deap.crossover_int)
         toolbox.register("mutate", deap.mutate_int)
-    elif pool_type == 'str':
+    elif pool_type_1 == 'str':
         # MAX_STRING_LENGTH = input('Enter max. length of the string: ')
         toolbox.register('attr_str', deap.random_string)
         toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_str, n=n)
@@ -645,7 +647,7 @@ def deap(n, pool_type, function_names, *args):
         toolbox.register("evaluate", get_fitness_cgi)
         toolbox.register("mate", deap.crossover_str)
         toolbox.register("mutate", deap.mutate_str)
-    elif pool_type == 'tuple':
+    elif pool_type_1 == 'tuple':
         # MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
         toolbox.register("attr_tuple", deap.random_str_int)
         toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_tuple, n=n)
@@ -656,12 +658,12 @@ def deap(n, pool_type, function_names, *args):
 
     toolbox.register("select", tools.selTournament, tournsize=TOURNSIZE)
 
-    test_file_name_1 = "instrumented_" + test_file_name
+    test_file_name_1 = "instrumented_" + test_file_name_new
     path_1 = test_file_name_1
 
     test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
     function_names_1 = [func for func in dir(test_file_1) if not func.startswith('__')]
-    path_deap_test = 'deap_tests_' + test_file_name
+    path_deap_test = 'deap_tests_' + test_file_name_new
 
 
     # b_instrumented = BranchInstrumented()
@@ -721,7 +723,7 @@ def deap(n, pool_type, function_names, *args):
         swapped_dict_list.append(swapped_dict)
         
     # print(swapped_dict_list)
-    test_file_name_1 = "instrumented_" + test_file_name
+    test_file_name_1 = "instrumented_" + test_file_name_new
     path_1 = test_file_name_1
 
     test_file_1 = SourceFileLoader(test_file_name_1, path_1).load_module()
@@ -735,57 +737,10 @@ def deap(n, pool_type, function_names, *args):
             node = ast.parse(source)
             tree = b_instrumented.visit(node)
 
-    print(b_instrumented.listofnodes)
-    print(swapped_dict_list)
+    # print(b_instrumented.listofnodes)
+    # print(swapped_dict_list)
 
     return swapped_dict_list, b_instrumented.listofnodes
-    # for sdk in swapped_dict_list:
-    #     print('sdk: ', sdk)
-    #     f = open("deap_tests_" + test_file_name, "w")
-    #     f.write("from unittest import TestCase\n")
-    #     for func in function_names: 
-    #         f.write(f"from {os.path.splitext(path_original)[0].replace('/', '.')} import {func}\n")
-
-    #     f.write("\nclass Test_example(TestCase):\n")
-    #     i = 1
-    #     for key_tup in sdk.keys():
-    #         # print(key_tup)
-    #         func_set = set()
-    #         for k in key_tup:
-    #             o = find_key_by_element(b_instrumented.listofnodes, k)
-    #             func_set.add(o)
-    #         for fs in func_set:
-    #             # print(fs)
-    #             n_o = fs[:fs.rfind('_')]
-    #             f.write(f"\n\tdef test_{n_o}_{i}(self):\n")
-    #             i = i + 1
-    #             f.write(f"\t\ty = {n_o}{tuple(sdk[key_tup])}\n")
-    #             try:
-    #                 globals()[fs] = getattr(test_file_1, fs)
-    #                 output = globals()[fs](*tuple(sdk[key_tup]))
-    #                 if type(output) == str:
-    #                     output = output.replace("\\", "\\\\").replace("'", "\\'")
-    #                     f.write(f"\t\tassert y == '{output}'\n")
-    #                 else:
-    #                     f.write(f"\t\tassert y == {output}\n")
-    #             except BaseException:
-    #                 pass
-    #     time.sleep(1)
-    #     print(path_original, path_deap_test)
-    #     stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
-    #     output_deap_test = stream_2.read()
-    #     # print(output_deap_test)
-    #     o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
-    #     print(o_2)
-        # time.sleep(1)
-
-
-
-    # return swapped_dict
-
-    # return coverage_dict
-
-        # return deap_config(test_file_name)
 
 
 
@@ -837,16 +792,16 @@ if __name__ == '__main__':
         MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
         parameters = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
 
-    creator.create("Fitness", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.Fitness)
-    toolbox = base.Toolbox()
+    # creator.create("Fitness", base.Fitness, weights=(-1.0,))
+    # creator.create("Individual", list, fitness=creator.Fitness)
+    # toolbox = base.Toolbox()
 
 
     
         
-    swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, *parameters)
+    swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, test_file_name, *parameters)
     print(swap_dict_list)
-    print(list_of_nodes)
+    # print(list_of_nodes)
 
     for sdk in swap_dict_list:
         print('sdk: ', sdk)
@@ -880,13 +835,15 @@ if __name__ == '__main__':
                         f.write(f"\t\tassert y == {output}\n")
                 except BaseException:
                     pass
-        print(path_original, path_deap_test)
+        f.close()
+        # print(path_original, path_deap_test)
         stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
         output_deap_test = stream_2.read()
         # print(output_deap_test)
         o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
         print(o_2)
         time.sleep(1)
+
 
     # stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
     # output_deap_test = stream_2.read()

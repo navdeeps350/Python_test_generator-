@@ -4,8 +4,8 @@ from benchmark.caesar_cipher import encrypt
 
 class Test_example(TestCase):
 	def test_decrypt_1(self):
-		y = decrypt('vde', 2)
-		assert y == 'tbc'
+		y = decrypt('wfkenlpgh', 8)
+		assert y == 'o^c]fdh_`'
 	def test_encrypt_2(self):
-		y = encrypt('byj', 40)
-		assert y == '+B3'
+		y = encrypt('jkaonbueo', 5)
+		assert y == 'opftsgzjt'

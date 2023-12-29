@@ -5,6 +5,7 @@ import random
 import nltk
 import random
 import astunparse
+import os
 
 from nltk.metrics import distance
 
@@ -27,6 +28,8 @@ class BranchTransformer(ast.NodeTransformer):
     def __init__(self, function_names):
         self.arg_type_list = []
         self.function_names = function_names
+        self.func_nodes = 0
+        self.comparision_nodes = 0
 
     branch_num = 0
 
@@ -35,11 +38,13 @@ class BranchTransformer(ast.NodeTransformer):
         for n in ast.walk(node):
             if isinstance(n, ast.Assign):
                 if isinstance(n.value, ast.Call) and n.value.func.id in self.function_names:
+                    self.func_nodes += 1
                     n.value.func.id = n.value.func.id + "_instrumented"
                 elif isinstance(n.value, ast.BinOp):
                      if isinstance(n.value.right, ast.Call) and n.value.right.func.id in self.function_names:
+                        self.func_nodes += 1
                         n.value.right.func.id = n.value.right.func.id + "_instrumented"
-
+        self.func_nodes += 1
         node.name = node.name + "_instrumented"
         return self.generic_visit(node)
     
@@ -53,6 +58,7 @@ class BranchTransformer(ast.NodeTransformer):
         if node.ops[0].__class__ in [ast.Is, ast.IsNot, ast.In, ast.NotIn]:
             return node
         self.branch_num += 1
+        self.comparision_nodes += 1
         return ast.Call(func=ast.Name("evaluate_condition", ast.Load()),
                         args=[ast.Num(self.branch_num),
                               ast.Str(node.ops[0].__class__.__name__),
@@ -65,6 +71,7 @@ class BranchTransformer(ast.NodeTransformer):
     def visit_Return(self, node):
         if (isinstance(node.value, ast.Call)):
                 if (isinstance(node.value.func, ast.Name)) and node.value.func.id in self.function_names:
+                    self.func_nodes += 1
                     node.value.func.id = node.value.func.id + "_instrumented"
         return node
 
@@ -162,30 +169,55 @@ def evaluate_condition(num, op, lhs, rhs):  # type: ignore
 
 if __name__ == '__main__':
     
-    test_file_name = input('enter the file for testing: ')
-    path = 'benchmark/' + test_file_name
+    # test_file_name = input('enter the file for testing: ')
+    # path = 'benchmark/' + test_file_name
 
-    test_file = SourceFileLoader(test_file_name, path).load_module()
+    directory_name = input("enter the name of the directory: ")
+    python_file_names = []
 
-    function_names = [func for func in dir(test_file) if not func.startswith('__')]
-    # print(function_names)
+    python_files = 0
+    function_nodes = 0
+    comparision_nodes = 0
 
-    b_transformer = BranchTransformer(function_names)
-    # print(b_transformer.arg_type_list)
+    for dirpath, dirnames, filenames in os.walk(directory_name):
+        for file in filenames:
+            if file.endswith(".py"):
+                python_file_names.append(file)                
 
-    f = open("instrumented_" + test_file_name, "w")
-    f.write('from instrumentor import evaluate_condition \n\n')
-    f.close()
+    print(python_file_names)
 
-    for func in function_names:
-        globals()[func] = getattr(test_file, func)
-        source = inspect.getsource(globals()[func])
-        node = ast.parse(source)
-        tree = b_transformer.visit(node)
+    for test_file_name in python_file_names:
+        python_files += 1
+        path = 'benchmark/' + test_file_name
 
-        f = open("instrumented_" + test_file_name, "a")
-        # print(ast.unparse(tree))
-        f.write('\n\n')
+        test_file = SourceFileLoader(test_file_name, path).load_module()
 
-        f.write(astunparse.unparse(tree))
-    f.close()
+        function_names = [func for func in dir(test_file) if not func.startswith('__')]
+        # print(function_names)
+
+        b_transformer = BranchTransformer(function_names)
+        # print(b_transformer.arg_type_list)
+
+        f = open("instrumented_" + test_file_name, "w")
+        f.write('from instrumentor import evaluate_condition \n\n')
+        f.close()
+
+        for func in function_names:
+            globals()[func] = getattr(test_file, func)
+            source = inspect.getsource(globals()[func])
+            node = ast.parse(source)
+            tree = b_transformer.visit(node)
+
+            f = open("instrumented_" + test_file_name, "a")
+            # print(ast.unparse(tree))
+            f.write('\n\n')
+
+            f.write(astunparse.unparse(tree))
+        f.close()
+
+        function_nodes += b_transformer.func_nodes
+        comparision_nodes += b_transformer.comparision_nodes
+
+    print("Total number of python files: ", python_files)
+    print("Total number of function nodes: ", function_nodes)
+    print("Total number of comparision nodes: ", comparision_nodes)
