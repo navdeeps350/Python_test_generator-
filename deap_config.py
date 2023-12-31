@@ -22,12 +22,6 @@ from testgen_random import get_imported_functions
 from deap import creator, base, tools, algorithms
 
 
-# NPOP = 300  # 300
-# NGEN = 200
-# MUPROB = 0.1  # 0.1
-# CXPROB = 0.5  # 0.5
-# TOURNSIZE = 3
-# REPS = 10
 
 distances_true = {}
 distances_false = {}
