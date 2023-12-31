@@ -3,5 +3,5 @@ from benchmark.exponentiation import exponentiation
 
 class Test_example(TestCase):
 	def test_exponentiation_1(self):
-		y = exponentiation(-4, 1)
-		assert y == -4
+		y = exponentiation(9, 9)
+		assert y == 387420489

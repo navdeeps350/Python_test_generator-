@@ -22,16 +22,12 @@ from testgen_random import get_imported_functions
 from deap import creator, base, tools, algorithms
 
 
-NPOP = 300  # 300
-NGEN = 200
-INDMUPROB = 0.05  # 0.05
-MUPROB = 0.1  # 0.1
-CXPROB = 0.5  # 0.5
-TOURNSIZE = 3
-# LOW = -1000
-# UP = 1000
-REPS = 10
-# MAX_STRING_LENGTH = 10
+# NPOP = 300  # 300
+# NGEN = 200
+# MUPROB = 0.1  # 0.1
+# CXPROB = 0.5  # 0.5
+# TOURNSIZE = 3
+# REPS = 10
 
 distances_true = {}
 distances_false = {}
@@ -615,15 +611,21 @@ class deap_gen:
         return creator.Individual(lists), 
 
 
-def deap(n, pool_type, function_names, test_file_name, *args):
+def deap(n, pool_type, function_names, test_file_name, NPOP, NGEN, MUPROB, CXPROB, TOURNSIZE, REPS, *args):
     global test_file_name_new
     global pool_type_1
     function_names = function_names
     n = n
     pool_type_1 = pool_type
     para = args
-    print(para)
+    # print(para)
     test_file_name_new = test_file_name
+    NPOP = NPOP
+    NGEN = NGEN
+    MUPROB = MUPROB
+    CXPROB = CXPROB
+    TOURNSIZE = TOURNSIZE
+    REPS = REPS
     deap = deap_gen(pool_type_1, *para)
 
 
@@ -676,13 +678,12 @@ def deap(n, pool_type, function_names, test_file_name, *args):
 
     # print(b_instrumented.listofnodes)
 
-    # b_instrumented = {'gcd_instrumented': [1, 2, 3, 4, 5]}
 
 
     coverage_dict = {}
     coverage = []
     swapped_dict_list = []
-    for i in range(10):
+    for i in range(REPS):
         global archive_true_branches, archive_false_branches
         archive_true_branches = {}
         archive_false_branches = {}
@@ -795,16 +796,19 @@ if __name__ == '__main__':
     # creator.create("Fitness", base.Fitness, weights=(-1.0,))
     # creator.create("Individual", list, fitness=creator.Fitness)
     # toolbox = base.Toolbox()
-
-
-    
         
-    swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, test_file_name, *parameters)
-    print(swap_dict_list)
-    # print(list_of_nodes)
+    NPOP = int(input("enter the population size: "))
+    NGEN = int(input("enter the number of generations: "))
+    MUPROB = float(input("enter the mutation probability: "))
+    CXPROB = float(input("enter the crossover probability: "))
+    TOURNSIZE = int(input("enter the size of the tournament: "))
+    REPS = int(input("enter the number of times you want to run this experiment: "))
+
+        
+    swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, test_file_name, NPOP, NGEN, MUPROB, CXPROB, TOURNSIZE, REPS, *parameters)
 
     for sdk in swap_dict_list:
-        print('sdk: ', sdk)
+        # print('sdk: ', sdk)
         f = open("deap_tests_" + test_file_name, "w")
         f.write("from unittest import TestCase\n")
         for func in function_names: 
@@ -836,23 +840,3 @@ if __name__ == '__main__':
                 except BaseException:
                     pass
         f.close()
-        # print(path_original, path_deap_test)
-        stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
-        output_deap_test = stream_2.read()
-        # print(output_deap_test)
-        o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
-        print(o_2)
-        time.sleep(1)
-
-
-    # stream_2 = os.popen(f'mut.py --target {path_original} --unit-test {path_deap_test}')
-    # output_deap_test = stream_2.read()
-    # # print(output_deap_test)
-    # o_2 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_deap_test).group(1)
-    # print(o_2)
-    # time.sleep(1)
-
-
-        
-    # deap_config(test_file_name, swapped_dict)
-

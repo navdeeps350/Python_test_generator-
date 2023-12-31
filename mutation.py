@@ -11,17 +11,6 @@ import numpy as np
 import plotly.graph_objects as go
 
 
-NPOP = 300  # 300
-NGEN = 200
-INDMUPROB = 0.05  # 0.05
-MUPROB = 0.1  # 0.1
-CXPROB = 0.5  # 0.5
-TOURNSIZE = 3
-# LOW = -1000
-# UP = 1000
-REPS = 10
-# MAX_STRING_LENGTH = 10
-
 
 test_file_name = input('Enter the file to be injected with mutation: ')
 path_original = 'benchmark/' + test_file_name
@@ -36,7 +25,6 @@ type_list = []
 
 test_file = SourceFileLoader(test_file_name, path_original).load_module()
 # test_file_1 = SourceFileLoader(path_deap_test, path_deap_test).load_module()
-
 
 function_names = [func for func in dir(test_file) if not func.startswith('__')]
 
@@ -71,11 +59,19 @@ elif pool_type == 'tuple':
     MAX_STRING_LENGTH, MIN_VAL, MAX_VAL = input('Enter max. length of the string and min. and max. values for the integer: ').split()
     parameters = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
 
-num_exp = int(input('Enter the number of test cases you want to run: '))
+num_exp = int(input('Enter the number of test cases you want to run in case of fuzzer: '))
+
+NPOP = int(input("enter the population size: "))
+NGEN = int(input("enter the number of generations: "))
+MUPROB = float(input("enter the mutation probability: "))
+CXPROB = float(input("enter the crossover probability: "))
+TOURNSIZE = int(input("enter the size of the tournament: "))
+REPS = int(input("enter the number of times you want to run this experiment: "))
+
 
 o_1_list = []
 
-for i in range(10):
+for i in range(REPS):
 
     test_gen_1(test_file_name, pool_size, type_list, num_exp, *parameters)
 
@@ -90,7 +86,7 @@ for i in range(10):
 o_2_list = []
 
 
-swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, test_file_name, *parameters)
+swap_dict_list, list_of_nodes = deap(n, pool_type, function_names, test_file_name, NPOP, NGEN, MUPROB, CXPROB, TOURNSIZE, REPS, *parameters)
 print(swap_dict_list)
 # print(list_of_nodes)
 
@@ -165,6 +161,7 @@ def cohen_d(group1, group2):
 
 effect_size = cohen_d(o_1_values, o_2_values)
 print(f"Cohen's d: {effect_size}")
+
 
 
 fig = go.Figure()

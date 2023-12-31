@@ -248,10 +248,8 @@ def test_gen_1(test_file_name, pool_size, type_list, num_exp, *args):
     out = {}
     prev_distances_true = {}
     distances_true.clear()
-    # print(function_names)
     for func in function_names:
         if func not in get_imported_functions(path_1):
-            # print(func)
             out[func] = {}
             globals()[func] = getattr(test_file_1, func)
             for i in range(num_exp):
@@ -261,7 +259,6 @@ def test_gen_1(test_file_name, pool_size, type_list, num_exp, *args):
                     if len(distances_true) > len(prev_distances_true):
                         keys = set(distances_true.keys()).difference(set(prev_distances_true.keys()))
                         out[func][str(list(keys))] = {}
-                        # print(out[func][str(list(keys))])
                         out[func][str(list(keys))][str(test_case)] = globals()[func](*test_case)
                     dist_dict = [distances_true, distances_false]
                     prev_distances_true = distances_true.copy()
@@ -344,18 +341,7 @@ if __name__ == '__main__':
         parameters = (MAX_STRING_LENGTH, MIN_VAL, MAX_VAL)
     num_exp = int(input('Enter the number of test cases you want to run: '))
 
-    # test_gen(test_file_name, pool_size, type_list, num_exp, *parameters)
-    # o_1_list = []
-    for i in range(10):
 
-        test_gen_1(test_file_name, pool_size, type_list, num_exp, *parameters)
+    test_gen_1(test_file_name, pool_size, type_list, num_exp, *parameters)
 
-
-    #     stream_1 = os.popen(f'mut.py --target {path_original} --unit-test {path_test}')
-    #     output_test = stream_1.read()
-    #     o_1 = re.search('Mutation score \[.*\]: (\d+\.\d+)\%', output_test).group(1)
-    #     print(o_1)
-    #     o_1_list.append(o_1)
-    
-    # print(o_1_list)
 
