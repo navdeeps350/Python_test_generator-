@@ -8,7 +8,7 @@ It is part of the Knowledge Search & Extraction - 2023 course from the Universit
 In this repository, you can find the following files:
 - benchmark folder: which contains the benchmark of functions under test to be instrumented
 
-Note: Feel free to modify this file according to the project's necessities.
+For more information, **project_report** folder. It contains project description as well as project report.
 
 
  
